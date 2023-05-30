@@ -22,11 +22,5 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const analytics = getFirestore(app);
 
-async function getCities(db) {
-    const citiesCol = collection(db, 'utilisateurs');
-    const citySnapshot = await getDocs(citiesCol);
-    const cityList = citySnapshot.docs.map(doc => doc.data());
-    return cityList;
-}
 
 export default analytics;
