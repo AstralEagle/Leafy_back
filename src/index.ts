@@ -2,6 +2,9 @@
 import http from 'http';
 import express, { Express } from 'express';
 import Routes from './routes'
+import dotenv from 'dotenv'
+
+dotenv.config()
 
 //Initialisation de la base de donné
 
