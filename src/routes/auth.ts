@@ -38,7 +38,10 @@ app.post("/login", async (req, res) => {
         if (!user) {
             throw new Error("User not found!")
         }
-        bcrypt.compareSync(password, user.password);
+        const isValid = bcrypt.compareSync(password, user.password);
+        if(!isValid){
+            throw new Error("Password wrong")
+        }
 
         const userToken = jwt.sign({
             user: {
@@ -99,11 +102,25 @@ app.put("/newAdmin", auth, async (req: any, res) => {
             throw new Error("Missing user")
         }
         const docRef: any = doc(db, 'utilisateurs', req.body.userId);
-        await updateDoc(docRef, {
+        const dataEdited: any = {
             isAdmin: true
-        });
+        }
+        await updateDoc(docRef, dataEdited );
         res.status(200).send("Edit admin is succesful")
     }catch (e) {
+        console.error(e)
+        res.status(500)
+    }
+})
+app.put("/profile", auth, async(req: any, res) => {
+    const {firstName, lastName, email, password} = req.body
+    try{
+        const docRef: any = doc(db, 'utilisateurs', req.auth.userId);
+        const hash = bcrypt.hashSync(password, 10);
+        const dataEdited: any = {firstName, lastName, email, password: hash}
+        await updateDoc(docRef, dataEdited);
+        res.status(200).send("Edit profil success")
+    }catch(e){
         console.error(e)
         res.status(500)
     }
