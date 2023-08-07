@@ -15,4 +15,5 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const analytics = getFirestore(app);
 
+
 export default analytics;
