@@ -1,17 +1,26 @@
 import {Router} from "express"
-import {collection, doc, getDocs, addDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
+import {collection, doc, getDocs, getDoc, addDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import db from "../utils/database"
 import * as bcrypt from 'bcrypt';
 import jwt, {Secret} from 'jsonwebtoken';
 import {auth} from "../middlewares/auth";
-
+import sgMail from "@sendgrid/mail";
 import dotenv from 'dotenv'
 
 dotenv.config()
 
+interface UserInterface {
+    isAdmin: boolean;
+    email: string;
+    firstName: string;
+    lastName: string;
+    password: string;
+    dateCreated: any;
+}
+
+
+
 const secretKey = process.env.KEY_TOKEN;
-
-
 const app = Router();
 
 app.get("/users", auth, async (req: any, res) => {
@@ -75,6 +84,14 @@ app.post("/signup", async (req, res) => {
             lastName,
             password: hash
         });
+        const data: any = {
+            to: email,
+            from: "leafy.ipssi@gmail.com",
+            subject: 'Leafy vous souhaite le bienvenue',
+            text: `${firstName} ${lastName}, l'équipe de leafy vous souhaite le bienvenue!`,
+            html: `<div><h1>Bienvenue</h1><p>${firstName} ${lastName}, toute l'équipe de leafy vous souhaite le bienvenue!</p></div>`,
+        }
+        await sgMail.send(data)
         res.status(201).send("Create account is successful")
     } catch (e) {
         console.error(e)
@@ -83,9 +100,19 @@ app.post("/signup", async (req, res) => {
 })
 app.delete("/", auth, async (req: any, res) => {
     try{
-        console.log(req.auth)
-        const docRef = doc(db, 'utilisateurs', req.auth.userId);
-        await deleteDoc(docRef);
+        const userDoc = doc(db, 'utilisateurs', req.auth.userId);
+        const user: any = (await getDoc(userDoc)).data()
+        console.log(user)
+        const data: any = {
+            to: user.email,
+            from: "leafy.ipssi@gmail.com",
+            subject: 'Supression du compte leafy',
+            text: `${user.firstName} ${user.lastName}, votre compte a été supprimer!`,
+            html: `<div><h1>Ho non</h1><p>${user.firstName} ${user.lastName}, nous sommes triste que vous decidier de quittez l'aventure Leafy aussi tôt. Nous espérons que vous reviendrez vite!</p></div>`,
+        }
+        await sgMail.send(data)
+        // envoyer un email a l'admin
+        await deleteDoc(userDoc);
         res.status(200).send("Success removed")
     }catch (e) {
         console.error(e)
