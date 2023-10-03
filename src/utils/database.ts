@@ -1,19 +1,25 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
+import dotenv from 'dotenv'
+
+dotenv.config()
 
 const firebaseConfig = {
-    apiKey: process.env.DATABASE_URL,
-    authDomain: "leafy-4f506.firebaseapp.com",
-    databaseURL: "https://leafy-4f506-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "leafy-4f506",
-    storageBucket: "leafy-4f506.appspot.com",
-    messagingSenderId: "99751034639",
-    appId: "1:99751034639:web:d4d715f8d79380c3ca087a",
-    measurementId: "G-EERTEV8HEW"
+    apiKey: process.env["API_KEY "],
+    authDomain: process.env["AUTH_DOMAIN "],
+    projectId: process.env["PROJECT_ID "],
+    storageBucket: process.env["STORAGE_BUCKET "],
+    messagingSenderId: process.env["MESSAGING_SENDER_ID "],
+    appId:process.env["APP_ID "]
 };
 
 const app = initializeApp(firebaseConfig);
-const analytics = getFirestore(app);
+export const db = getFirestore(app);
+export const storage = getStorage(app);
 
 
-export default analytics;
+// export default {
+//     db: getFirestore(app),
+//     storage: getStorage(app),
+// };

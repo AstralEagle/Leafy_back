@@ -1,6 +1,6 @@
 import {Router} from "express"
 import {collection, doc, getDocs, getDoc, addDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
-import db from "../utils/database"
+import { db }  from "../utils/database"
 import * as bcrypt from 'bcrypt';
 import jwt, {Secret} from 'jsonwebtoken';
 import {auth} from "../middlewares/auth";
@@ -82,7 +82,9 @@ app.post("/signup", async (req, res) => {
             email,
             firstName,
             lastName,
-            password: hash
+            password: hash,
+            storage: 0,
+            files: []
         });
         const data: any = {
             to: email,
