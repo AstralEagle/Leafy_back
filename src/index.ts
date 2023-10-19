@@ -11,7 +11,7 @@ router.use(express.urlencoded({ extended: false }));
 router.use(express.json());
 
 router.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Origin', "http://localhost:3000");
     res.header('Access-Control-Allow-Headers', 'origin, X-Requested-With,Content-Type,Accept, Authorization');
     if (req.method === 'OPTIONS') {
         res.header('Access-Control-Allow-Methods', 'GET PATCH DELETE POST');
