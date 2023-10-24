@@ -71,7 +71,9 @@ app.post("/login", async (req, res) => {
 })
 app.post("/signup", async (req, res) => {
     try{
-        const {password, email, firstName, lastName} = req.body
+        const {password, email, firstName, lastName, address} = req.body
+        if(!password || !email || !firstName || !lastName || !address.addres || !address.city || !address.country || !address.zip )
+            throw new Error("Missing value")
 
         const hash = bcrypt.hashSync(password, 10);
 
@@ -82,6 +84,7 @@ app.post("/signup", async (req, res) => {
             email,
             firstName,
             lastName,
+            address,
             password: hash,
             storage: 0,
             files: []
@@ -95,9 +98,9 @@ app.post("/signup", async (req, res) => {
         // }
         // await sgMail.send(data)
         res.status(201).send("Create account is successful")
-    } catch (e) {
+    } catch (e: any) {
         console.error(e)
-        res.status(500).send(e)
+        res.status(500).json({error: e.message})
     }
 })
 app.delete("/", auth, async (req: any, res) => {
