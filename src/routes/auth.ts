@@ -72,7 +72,7 @@ app.post("/login", async (req, res) => {
 app.post("/signup", async (req, res) => {
     try{
         const {password, email, firstName, lastName, address} = req.body
-        if(!password || !email || !firstName || !lastName || !address.addres || !address.city || !address.country || !address.zip )
+        if(!password || !email || !firstName || !lastName || !address.address || !address.city || !address.country || !address.zip )
             throw new Error("Missing value")
 
         const hash = bcrypt.hashSync(password, 10);
