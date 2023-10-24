@@ -6,12 +6,12 @@ import dotenv from 'dotenv'
 dotenv.config()
 
 const firebaseConfig = {
-    apiKey: "AIzaSyDY7DrllD5-dQWY0D4c3uv98Uy_nMM2s4s",
-    authDomain: "honee-4a5ba.firebaseapp.com",
-    projectId: "honee-4a5ba",
-    storageBucket: "honee-4a5ba.appspot.com",
-    messagingSenderId: "560452465644",
-    appId: "1:560452465644:web:68f779e30cfd86d27706c9"
+    apiKey: process.env["DB_KEY "],
+    authDomain: process.env["DB_AUTH "],
+    projectId: process.env["DB_ID "],
+    storageBucket: process.env["DB_BUCKET "],
+    messagingSenderId: process.env["DB_SENDER "],
+    appId: process.env["DB_APP "]
 };
 
 const app = initializeApp(firebaseConfig);
