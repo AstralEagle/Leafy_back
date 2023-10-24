@@ -1,12 +1,14 @@
 import {Router} from "express"
 import AuthRoutes from "./auth"
 import FileRoutes from "./files"
+import AdminRoutes from "./admin"
 import BodyParse from "body-parser";
 
 const app = Router();
 
 app.use("/auth", AuthRoutes);
 app.use("/file", FileRoutes);
+app.use("/admin", AdminRoutes);
 
 /*
 app.post('/webhook', BodyParse.raw({type: 'application/json'}), (request, response) => {

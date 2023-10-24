@@ -86,14 +86,14 @@ app.post("/signup", async (req, res) => {
             storage: 0,
             files: []
         });
-        const data: any = {
-            to: email,
-            from: "leafy.ipssi@gmail.com",
-            subject: 'Leafy vous souhaite le bienvenue',
-            text: `${firstName} ${lastName}, l'équipe de leafy vous souhaite le bienvenue!`,
-            html: `<div><h1>Bienvenue</h1><p>${firstName} ${lastName}, toute l'équipe de leafy vous souhaite le bienvenue!</p></div>`,
-        }
-        await sgMail.send(data)
+        // const data: any = {
+        //     to: email,
+        //     from: "leafy.ipssi@gmail.com",
+        //     subject: 'Leafy vous souhaite le bienvenue',
+        //     text: `${firstName} ${lastName}, l'équipe de leafy vous souhaite le bienvenue!`,
+        //     html: `<div><h1>Bienvenue</h1><p>${firstName} ${lastName}, toute l'équipe de leafy vous souhaite le bienvenue!</p></div>`,
+        // }
+        // await sgMail.send(data)
         res.status(201).send("Create account is successful")
     } catch (e) {
         console.error(e)

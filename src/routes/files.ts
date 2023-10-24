@@ -4,8 +4,9 @@ import {db, storage} from "../utils/database"
 import {auth} from "../middlewares/auth";
 import multer from "multer";
 import dotenv from 'dotenv'
-import {doc, getDoc, updateDoc} from "firebase/firestore";
+import {addDoc, collection, doc, getDoc, serverTimestamp, updateDoc} from "firebase/firestore";
 import * as bcrypt from "bcrypt";
+import {throws} from "assert";
 
 dotenv.config()
 
@@ -26,64 +27,104 @@ app.get("/", auth, async (req: any, res) => {
 })
 app.post("/", auth, upload.single("filename"), async (req: any, res) => {
     try {
-        console.log(req.file)
-        if (!req.file) {
+        if (!req.file)
             throw new Error("No File")
+        // Verif size
+        const docRef: any = doc(db, 'utilisateurs', req.auth.userId);
+        const user: any = (await getDoc(docRef)).data()
+        const afterSize = parseInt(user.storage) - req.file.size
+        if (afterSize < 0) {
+            throw new Error("No storage")
         }
-        const dateTime = giveCurrentDateTime();
 
-        const fileName = dateTime + ":/" + req.file.originalname
-
-        const storageRef = ref(storage, `files/${fileName}`);
-
-        // Create file metadata including the content type
+        const filesCollection = collection(db, 'files');
+        const fileData = await addDoc(filesCollection, {
+            date: serverTimestamp(),
+            size: req.file.size,
+            name: req.file.originalname,
+            type: req.file.mimetype,
+        })
         const metadata = {
             contentType: req.file.mimetype,
         };
+        const storageRef = ref(storage, `${req.auth.userId}/${fileData.id}`);
 
-        // Upload the file in the bucket storage
-        const snapshot = await uploadBytes(storageRef, req.file.buffer);
-        //by using uploadBytesResumable we can control the progress of uploading like pause, resume, cancel
+        const snapshot = await uploadBytes(storageRef, req.file.buffer, metadata);
 
-        // Grab the public url
-        if (!snapshot)
-            throw new Error("No snap")
         const downloadURL = await getDownloadURL(snapshot.ref);
-        // const downloadURL = await snapshot.ref.getDownloadURL();
 
-        const docRef: any = doc(db, 'utilisateurs', req.auth.userId);
-        const user: any = (await getDoc(docRef)).data()
         const dataEdited: any = {
+            storage: afterSize,
             files: [
                 ...user.files,
-                {
-                    url: downloadURL,
-                    date: dateTime,
-                    size: req.file.size
-                }]
+                fileData.id
+                ]
         }
         await updateDoc(docRef, dataEdited);
 
-        return res.send({
-            message: 'file uploaded to firebase storage',
+        return res.json({
             name: req.file.originalname,
             type: req.file.mimetype,
             downloadURL: downloadURL
         })
+
+
     } catch (e: any) {
         console.error(e)
         res.status(500).json({error: e.message})
     }
+    // try {
+    //     if (!req.file) {
+    //         throw new Error("No File")
+    //     }
+    //     const storageRef = ref(storage, `${req.auth.userId}/${req.file.originalname}`);
+    //     await getDownloadURL(storageRef).then(() => {
+    //             throw new Error("File exist")
+    //         }, () => {
+    //             return
+    //         });
+    //
+    //     const docRef: any = doc(db, 'utilisateurs', req.auth.userId);
+    //     const user: any = (await getDoc(docRef)).data()
+    //
+    //     const afterSize = parseInt(user.storage) - req.file.size
+    //
+    //     if (afterSize < 0) {
+    //         throw new Error("No storage")
+    //     }
+    //
+    //     const metadata = {
+    //         contentType: req.file.mimetype,
+    //     };
+    //
+    //     const snapshot = await uploadBytes(storageRef, req.file.buffer, metadata);
+    //
+    //     const downloadURL = await getDownloadURL(snapshot.ref);
+    //
+    //     const dataEdited: any = {
+    //         storage: afterSize,
+    //         files: [
+    //             ...user.files,
+    //             {
+    //                 url: downloadURL,
+    //                 size: req.file.size
+    //             }]
+    //     }
+    //     await updateDoc(docRef, dataEdited);
+    //
+    //     return res.json({
+    //         message: 'file uploaded to firebase storage',
+    //         name: req.file.originalname,
+    //         type: req.file.mimetype,
+    //         downloadURL: downloadURL
+    //     })
+    // } catch (e: any) {
+    //     console.error(e)
+    //     res.status(500).json({error: e.message})
+    // }
 });
 
 
-const giveCurrentDateTime = () => {
-    const today = new Date();
-    const date = today.getFullYear() + '-' + (today.getMonth() + 1) + '-' + today.getDate();
-    const time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
-    const dateTime = date + ' ' + time;
-    return dateTime;
-}
 
 
 export default app;
