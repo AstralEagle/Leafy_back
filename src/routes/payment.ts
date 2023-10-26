@@ -6,22 +6,16 @@ const app = Router();
 
 app.post('/secret', async (req, res) => {
   try {
-    // const { amount } = req.body;
-
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: 20,
+      amount: 2000, // centimes
       currency: 'eur',
-      // confirmation_method: "manual",
-      automatic_payment_methods: {
-        enabled: true,
-      },
+      payment_method_types: ['card'],
     });
 
     res.status(200).json({client_secret: paymentIntent.client_secret});
 
-  } catch (e: any) {
-    console.error(e);
-    res.status(e.statusCode);
+  } catch (error: any) {
+    return res.status(error.statusCode).json({error});
   }
 });
 
