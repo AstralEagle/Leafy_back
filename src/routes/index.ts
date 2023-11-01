@@ -1,6 +1,7 @@
-import {Router} from "express"
-import AuthRoutes from "./auth"
-import FileRoutes from "./files"
+import { Router } from "express";
+import AuthRoutes from "./auth";
+import FileRoutes from "./files";
+import PaymentRoutes from "./payment";
 import BodyParse from "body-parser";
 
 const app = Router();
@@ -31,5 +32,6 @@ app.post('/webhook', BodyParse.raw({type: 'application/json'}), (request, respon
     response.json({received: true});
 });
 */
+app.use("/payment", PaymentRoutes);
 
 export default app;
