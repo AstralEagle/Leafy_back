@@ -1,26 +1,25 @@
-// Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, getDocs } from 'firebase/firestore';
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
+import dotenv from 'dotenv'
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+dotenv.config()
+
 const firebaseConfig = {
-    apiKey: "AIzaSyB_SSBCGB_0opdwubYYUPjJUkzmbaN3ROo",
-    authDomain: "leafy-4f506.firebaseapp.com",
-    databaseURL: "https://leafy-4f506-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "leafy-4f506",
-    storageBucket: "leafy-4f506.appspot.com",
-    messagingSenderId: "99751034639",
-    appId: "1:99751034639:web:d4d715f8d79380c3ca087a",
-    measurementId: "G-EERTEV8HEW"
+    apiKey: process.env["API_KEY "],
+    authDomain: process.env["AUTH_DOMAIN "],
+    projectId: process.env["PROJECT_ID "],
+    storageBucket: process.env["STORAGE_BUCKET "],
+    messagingSenderId: process.env["MESSAGING_SENDER_ID "],
+    appId:process.env["APP_ID "]
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getFirestore(app);
+export const db = getFirestore(app);
+export const storage = getStorage(app);
 
 
-export default analytics;
+// export default {
+//     db: getFirestore(app),
+//     storage: getStorage(app),
+// };
