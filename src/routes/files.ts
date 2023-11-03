@@ -1,12 +1,10 @@
 import {Router} from "express"
-import {ref, getDownloadURL, uploadBytes} from "firebase/storage";
+import {deleteObject, getDownloadURL, getMetadata, listAll, ref, uploadBytes} from "firebase/storage";
 import {db, storage} from "../utils/database"
 import {auth} from "../middlewares/auth";
 import multer from "multer";
 import dotenv from 'dotenv'
-import {addDoc, collection, doc, getDoc, serverTimestamp, updateDoc} from "firebase/firestore";
-import * as bcrypt from "bcrypt";
-import {throws} from "assert";
+import {addDoc, collection, deleteDoc, doc, getDoc, serverTimestamp, updateDoc} from "firebase/firestore";
 
 dotenv.config()
 
@@ -16,10 +14,25 @@ const upload = multer({storage: multer.memoryStorage()});
 
 app.get("/", auth, async (req: any, res) => {
     try {
-        const docRef: any = doc(db, 'utilisateurs', req.auth.userId);
-        const user: any = (await getDoc(docRef)).data()
+        const listRef = ref(storage, `${req.auth.userId}/`);
 
-        res.json(user.files)
+        const file = await listAll(listRef)
+
+        res.json(await Promise.all(file.items.map(async x => {
+            const metaData = await getMetadata(x)
+            const fileRef: any = doc(db, 'files', x.name);
+            const file: any = (await getDoc(fileRef)).data()
+            const downloadUrl = await getDownloadURL(x);
+
+            return {
+                id: x.name,
+                name: file.name,
+                size: metaData.size,
+                type: metaData.contentType,
+                created: metaData.timeCreated,
+                downloadUrl,
+            }
+        })));
     } catch (e: any) {
         console.error(e)
         res.status(500).json({error: e.message})
@@ -32,8 +45,8 @@ app.post("/", auth, upload.single("filename"), async (req: any, res) => {
         // Verif size
         const docRef: any = doc(db, 'utilisateurs', req.auth.userId);
         const user: any = (await getDoc(docRef)).data()
-        const afterSize = parseInt(user.storage) - req.file.size
-        if (afterSize < 0) {
+        const afterSize = parseInt(user.storage.used) + req.file.size;
+        if (afterSize > parseInt(user.storage.max)) {
             throw new Error("No storage")
         }
 
@@ -54,11 +67,11 @@ app.post("/", auth, upload.single("filename"), async (req: any, res) => {
         const downloadURL = await getDownloadURL(snapshot.ref);
 
         const dataEdited: any = {
-            storage: afterSize,
+            storage: {used: afterSize, max: user.storage.max},
             files: [
                 ...user.files,
                 fileData.id
-                ]
+            ]
         }
         await updateDoc(docRef, dataEdited);
 
@@ -73,58 +86,36 @@ app.post("/", auth, upload.single("filename"), async (req: any, res) => {
         console.error(e)
         res.status(500).json({error: e.message})
     }
-    // try {
-    //     if (!req.file) {
-    //         throw new Error("No File")
-    //     }
-    //     const storageRef = ref(storage, `${req.auth.userId}/${req.file.originalname}`);
-    //     await getDownloadURL(storageRef).then(() => {
-    //             throw new Error("File exist")
-    //         }, () => {
-    //             return
-    //         });
-    //
-    //     const docRef: any = doc(db, 'utilisateurs', req.auth.userId);
-    //     const user: any = (await getDoc(docRef)).data()
-    //
-    //     const afterSize = parseInt(user.storage) - req.file.size
-    //
-    //     if (afterSize < 0) {
-    //         throw new Error("No storage")
-    //     }
-    //
-    //     const metadata = {
-    //         contentType: req.file.mimetype,
-    //     };
-    //
-    //     const snapshot = await uploadBytes(storageRef, req.file.buffer, metadata);
-    //
-    //     const downloadURL = await getDownloadURL(snapshot.ref);
-    //
-    //     const dataEdited: any = {
-    //         storage: afterSize,
-    //         files: [
-    //             ...user.files,
-    //             {
-    //                 url: downloadURL,
-    //                 size: req.file.size
-    //             }]
-    //     }
-    //     await updateDoc(docRef, dataEdited);
-    //
-    //     return res.json({
-    //         message: 'file uploaded to firebase storage',
-    //         name: req.file.originalname,
-    //         type: req.file.mimetype,
-    //         downloadURL: downloadURL
-    //     })
-    // } catch (e: any) {
-    //     console.error(e)
-    //     res.status(500).json({error: e.message})
-    // }
 });
 
+app.delete("/", auth, async (req: any, res) => {
+    try {
+        if (!req.body.idFile)
+            throw new Error("No files selected")
+        const fileRef = doc(db, "files", req.body.idFile);
+        const file: any = (await getDoc(fileRef)).data()
+        if (!fileRef)
+            throw new Error("File not exist");
 
+        const userRef: any = doc(db, 'utilisateurs', req.auth.userId);
+        const user: any = (await getDoc(userRef)).data()
+
+        const storageRef = ref(storage, `${req.auth.userId}/${req.body.idFile}`);
+
+        await deleteObject(storageRef);
+        await deleteDoc(fileRef);
+
+        await updateDoc(userRef, {
+            storage: {used: user.storage.used - file.size, max: user.storage.max},
+            files: user.files.filter((x: string) => x !== req.body.idFile),
+        });
+
+        res.json({succes: "File is deleted"})
+
+    } catch (e: any) {
+        res.status(400).send(e.message)
+    }
+});
 
 
 export default app;

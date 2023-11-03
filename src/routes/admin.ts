@@ -2,10 +2,10 @@ import {Router} from "express"
 import {db, storage} from "../utils/database"
 import {auth} from "../middlewares/auth";
 import {adminAuth} from "../middlewares/isAdmin";
-import dotenv from 'dotenv'
-import {collection, doc, getDoc, getDocs, updateDoc} from "firebase/firestore";
-import {ref, listAll, getMetadata} from "firebase/storage";
+import {collection, doc, getDoc, getDocs, query, where, Timestamp} from "firebase/firestore";
+import {getDownloadURL, getMetadata, listAll, ref} from "firebase/storage";
 
+import dotenv from 'dotenv'
 
 dotenv.config()
 
@@ -18,6 +18,29 @@ interface User {
     storage: string; // ou tout autre type approprié pour le champ "storage"
 }
 
+app.get("/", async (req, res) => {
+    try {
+
+        const userRef: any = collection(db, 'utilisateurs');
+        const filesRef: any = collection(db, 'files');
+
+
+        const startOfToday = new Date();
+        startOfToday.setHours(0, 0, 0, 0);
+        const startOfTodayTimestamp = Timestamp.fromDate(startOfToday);
+
+        const q = query(filesRef, where('date', '>=', startOfTodayTimestamp));
+
+        const usersDoc = await getDocs(userRef);
+        const filesDoc = await getDocs(filesRef);
+        const queryDoc = await getDocs(q);
+
+        res.json({user: usersDoc.size, files: filesDoc.size, fileUpladToday: queryDoc.size})
+    } catch (e: any) {
+        res.status(500).send(e.message)
+    }
+});
+
 app.get("/filesbyuser", auth, adminAuth, async (req: any, res) => {
     try {
         console.log(req.body)
@@ -25,18 +48,20 @@ app.get("/filesbyuser", auth, adminAuth, async (req: any, res) => {
             throw new Error("No user selected")
         const listRef = ref(storage, `${req.body.userID}/`);
 
-        // const docRef: any = doc(db, 'utilisateurs', req.auth.userId);
-        // const user: any = (await getDoc(docRef)).data()
-
         const file = await listAll(listRef)
 
-        res.json(await Promise.all(file.items.map(async x =>  {
+        res.json(await Promise.all(file.items.map(async x => {
             const metaData = await getMetadata(x)
+            const fileRef: any = doc(db, 'files', x.name);
+            const file: any = (await getDoc(fileRef)).data()
+            const downloadUrl = await getDownloadURL(x);
             return {
-                name: x.name,
+                id: x.name,
+                name: file.name,
                 size: metaData.size,
                 type: metaData.contentType,
                 created: metaData.timeCreated,
+                downloadUrl,
             }
         })));
     } catch (e: any) {

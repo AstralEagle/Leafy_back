@@ -1,11 +1,12 @@
 import {Router} from "express"
 import {collection, doc, getDocs, getDoc, addDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
-import { db }  from "../utils/database"
+import {db, storage} from "../utils/database"
 import * as bcrypt from 'bcrypt';
 import jwt, {Secret} from 'jsonwebtoken';
 import {auth} from "../middlewares/auth";
 import sgMail from "@sendgrid/mail";
 import dotenv from 'dotenv'
+import {deleteObject, ref} from "firebase/storage";
 
 dotenv.config()
 
@@ -16,6 +17,8 @@ interface UserInterface {
     lastName: string;
     password: string;
     dateCreated: any;
+    files: string[];
+    storage: {max: number, used: number}
 }
 
 
@@ -86,16 +89,16 @@ app.post("/signup", async (req, res) => {
             lastName,
             address,
             password: hash,
-            storage: 0,
+            storage: {used: 0, max: 21474836480	},
             files: []
         });
-        // const data: any = {
-        //     to: email,
-        //     from: "leafy.ipssi@gmail.com",
-        //     subject: 'Leafy vous souhaite le bienvenue',
-        //     text: `${firstName} ${lastName}, l'équipe de leafy vous souhaite le bienvenue!`,
-        //     html: `<div><h1>Bienvenue</h1><p>${firstName} ${lastName}, toute l'équipe de leafy vous souhaite le bienvenue!</p></div>`,
-        // }
+        const data: any = {
+            to: email,
+            from: "leafy.ipssi@gmail.com",
+            subject: 'Leafy vous souhaite le bienvenue',
+            text: `${firstName} ${lastName}, l'équipe de leafy vous souhaite le bienvenue!`,
+            html: `<div><h1>Bienvenue</h1><p>${firstName} ${lastName}, toute l'équipe de leafy vous souhaite le bienvenue!</p></div>`,
+        }
         // await sgMail.send(data)
         res.status(201).send("Create account is successful")
     } catch (e: any) {
@@ -113,17 +116,32 @@ app.delete("/", auth, async (req: any, res) => {
             from: "leafy.ipssi@gmail.com",
             subject: 'Supression du compte leafy',
             text: `${user.firstName} ${user.lastName}, votre compte a été supprimer!`,
-            html: `<div><h1>Ho non</h1><p>${user.firstName} ${user.lastName}, nous sommes triste que vous decidier de quittez l'aventure Leafy aussi tôt. Nous espérons que vous reviendrez vite!</p></div>`,
+            html: `<div><h1>Ho non</h1><p>${user.firstName} ${user.lastName}, nous sommes triste que vous decidier de quittez l'aventure Honee aussi tôt. Nous espérons que vous reviendrez vite!</p></div>`,
         }
-        await sgMail.send(data)
-        // envoyer un email a l'admin
+        // await sgMail.send(data)
+
+        const emailToAdmin: any = {
+            to: "leafy.ipssi@gmail.com",
+            from: "leafy.ipssi@gmail.com",
+            subject: 'Supression du compte leafy',
+            text: `${user.firstName} ${user.lastName}, votre compte a été supprimer!`,
+            html: `<div><h1>Un compte a été supprimer</h1><p>${user.firstName} ${user.lastName} a suprimé son compte.</br> Cela a entrainé la suppresion de ${user.files.length} fichier(s)</p></div>`,
+        }
+        // await sgMail.send(emailToAdmin)
+
+        await Promise.all(user.files.map( async(x: string) => {
+            const fileRef = doc(db, "files", x);
+            const storageRef = ref(storage, `${req.auth.userId}/${x}`);
+
+            await deleteObject(storageRef);
+            await deleteDoc(fileRef);
+        }));
         await deleteDoc(userDoc);
         res.status(200).send("Success removed")
-    }catch (e) {
+    } catch (e) {
         console.error(e)
         res.status(500)
     }
-
 })
 app.put("/newAdmin", auth, async (req: any, res) => {
     if(!req.auth.isAdmin){
