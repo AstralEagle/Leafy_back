@@ -1,15 +1,12 @@
 /** source/server.ts */
 import http from 'http';
 import express, { Express } from 'express';
-import Routes from './routes'
-import sgMail from "@sendgrid/mail";
+import Routes from "./routes";
 import dotenv from 'dotenv'
 
 dotenv.config()
 
-sgMail.setApiKey(process.env.KEY_EMAIL as string)
-
-//Initialisation de la base de donné
+//Initialisation de la base de données
 
 const router: Express = express();
 
