@@ -13,7 +13,7 @@ export const auth = (req: any, res: any, next: any) => {
         };
         next();
     } catch(e: any) {
-        res.status(401).json({ error: e.message });
+        res.status(401).json({ error: "Not connected" });
     }
 }
 

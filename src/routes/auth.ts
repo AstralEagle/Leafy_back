@@ -1,11 +1,12 @@
 import {Router} from "express"
-import {collection, doc, getDocs, getDoc, addDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
-import { db }  from "../utils/database"
+import {addDoc, collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, updateDoc} from "firebase/firestore";
+import {db, storage} from "../utils/database"
 import * as bcrypt from 'bcrypt';
 import jwt, {Secret} from 'jsonwebtoken';
 import {auth} from "../middlewares/auth";
-import sgMail from "@sendgrid/mail";
 import dotenv from 'dotenv'
+import {deleteObject, ref} from "firebase/storage";
+import {mailSender} from "../utils/email";
 
 dotenv.config()
 
@@ -16,6 +17,8 @@ interface UserInterface {
     lastName: string;
     password: string;
     dateCreated: any;
+    files: string[];
+    storage: {max: number, used: number}
 }
 
 
@@ -24,7 +27,6 @@ const secretKey = process.env.KEY_TOKEN;
 const app = Router();
 
 app.get("/users", auth, async (req: any, res) => {
-    console.log(req.auth)
     try {
         const usersCollection = collection(db, 'utilisateurs');
         const users = (await getDocs(usersCollection)).docs;
@@ -71,7 +73,9 @@ app.post("/login", async (req, res) => {
 })
 app.post("/signup", async (req, res) => {
     try{
-        const {password, email, firstName, lastName} = req.body
+        const {password, email, firstName, lastName, address} = req.body
+        if(!password || !email || !firstName || !lastName || !address.address || !address.city || !address.country || !address.zip )
+            throw new Error("Missing value")
 
         const hash = bcrypt.hashSync(password, 10);
 
@@ -82,45 +86,59 @@ app.post("/signup", async (req, res) => {
             email,
             firstName,
             lastName,
+            address,
             password: hash,
-            storage: 0,
+            storage: {used: 0, max: 21474836480	},
             files: []
         });
         const data: any = {
             to: email,
-            from: "leafy.ipssi@gmail.com",
-            subject: 'Leafy vous souhaite le bienvenue',
-            text: `${firstName} ${lastName}, l'équipe de leafy vous souhaite le bienvenue!`,
-            html: `<div><h1>Bienvenue</h1><p>${firstName} ${lastName}, toute l'équipe de leafy vous souhaite le bienvenue!</p></div>`,
+            subject: 'Honee vous souhaite le bienvenue',
+            text: `${firstName} ${lastName}, l'équipe de Honee vous souhaite le bienvenue!`,
+            html: `<div><h1>Bienvenue</h1><p>${firstName} ${lastName}, toute l'équipe de Honee vous souhaite le bienvenue!</p></div>`,
         }
-        await sgMail.send(data)
+        await mailSender.sendMail(data)
         res.status(201).send("Create account is successful")
-    } catch (e) {
+    } catch (e: any) {
         console.error(e)
-        res.status(500).send(e)
+        res.status(500).json({error: e.message})
     }
 })
 app.delete("/", auth, async (req: any, res) => {
-    try{
+    try {
         const userDoc = doc(db, 'utilisateurs', req.auth.userId);
         const user: any = (await getDoc(userDoc)).data()
-        console.log(user)
         const data: any = {
             to: user.email,
-            from: "leafy.ipssi@gmail.com",
-            subject: 'Supression du compte leafy',
+            subject: 'Supression du compte Honee',
             text: `${user.firstName} ${user.lastName}, votre compte a été supprimer!`,
-            html: `<div><h1>Ho non</h1><p>${user.firstName} ${user.lastName}, nous sommes triste que vous decidier de quittez l'aventure Leafy aussi tôt. Nous espérons que vous reviendrez vite!</p></div>`,
+            html: `<div><h1>Ho non</h1><p>${user.firstName} ${user.lastName}, nous sommes triste que vous decidier de quittez l'aventure Honee aussi tôt. Nous espérons que vous reviendrez vite!</p></div>`,
         }
-        await sgMail.send(data)
-        // envoyer un email a l'admin
+        await mailSender.sendMail(data)
+
+
+        const emailToAdmin: any = {
+            to: "leafy.ipssi@gmail.com",
+            subject: 'Un utilisateur a supprimé son compte',
+            text: `${user.firstName} ${user.lastName}, votre compte a été supprimer!`,
+            html: `<div><h1>Un compte a été supprimer</h1><p>${user.firstName} ${user.lastName} a suprimé son compte.</br> Cela a entrainé la suppresion de ${user.files.length} fichier(s)</p></div>`,
+        }
+        await mailSender.sendMail(emailToAdmin)
+
+
+        await Promise.all(user.files.map(async (x: string) => {
+            const fileRef = doc(db, "files", x);
+            const storageRef = ref(storage, `${req.auth.userId}/${x}`);
+
+            await deleteObject(storageRef);
+            await deleteDoc(fileRef);
+        }));
         await deleteDoc(userDoc);
         res.status(200).send("Success removed")
-    }catch (e) {
+    } catch (e) {
         console.error(e)
         res.status(500)
     }
-
 })
 app.put("/newAdmin", auth, async (req: any, res) => {
     if(!req.auth.isAdmin){
