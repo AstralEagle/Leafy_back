@@ -1,12 +1,12 @@
 import {Router} from "express"
-import {collection, doc, getDocs, getDoc, addDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
+import {addDoc, collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, updateDoc} from "firebase/firestore";
 import {db, storage} from "../utils/database"
 import * as bcrypt from 'bcrypt';
 import jwt, {Secret} from 'jsonwebtoken';
 import {auth} from "../middlewares/auth";
-import sgMail from "@sendgrid/mail";
 import dotenv from 'dotenv'
 import {deleteObject, ref} from "firebase/storage";
+import {mailSender} from "../utils/email";
 
 dotenv.config()
 
@@ -27,7 +27,6 @@ const secretKey = process.env.KEY_TOKEN;
 const app = Router();
 
 app.get("/users", auth, async (req: any, res) => {
-    console.log(req.auth)
     try {
         const usersCollection = collection(db, 'utilisateurs');
         const users = (await getDocs(usersCollection)).docs;
@@ -94,12 +93,11 @@ app.post("/signup", async (req, res) => {
         });
         const data: any = {
             to: email,
-            from: "leafy.ipssi@gmail.com",
-            subject: 'Leafy vous souhaite le bienvenue',
-            text: `${firstName} ${lastName}, l'équipe de leafy vous souhaite le bienvenue!`,
-            html: `<div><h1>Bienvenue</h1><p>${firstName} ${lastName}, toute l'équipe de leafy vous souhaite le bienvenue!</p></div>`,
+            subject: 'Honee vous souhaite le bienvenue',
+            text: `${firstName} ${lastName}, l'équipe de Honee vous souhaite le bienvenue!`,
+            html: `<div><h1>Bienvenue</h1><p>${firstName} ${lastName}, toute l'équipe de Honee vous souhaite le bienvenue!</p></div>`,
         }
-        // await sgMail.send(data)
+        await mailSender.sendMail(data)
         res.status(201).send("Create account is successful")
     } catch (e: any) {
         console.error(e)
@@ -107,29 +105,28 @@ app.post("/signup", async (req, res) => {
     }
 })
 app.delete("/", auth, async (req: any, res) => {
-    try{
+    try {
         const userDoc = doc(db, 'utilisateurs', req.auth.userId);
         const user: any = (await getDoc(userDoc)).data()
-        console.log(user)
         const data: any = {
             to: user.email,
-            from: "leafy.ipssi@gmail.com",
-            subject: 'Supression du compte leafy',
+            subject: 'Supression du compte Honee',
             text: `${user.firstName} ${user.lastName}, votre compte a été supprimer!`,
             html: `<div><h1>Ho non</h1><p>${user.firstName} ${user.lastName}, nous sommes triste que vous decidier de quittez l'aventure Honee aussi tôt. Nous espérons que vous reviendrez vite!</p></div>`,
         }
-        // await sgMail.send(data)
+        await mailSender.sendMail(data)
+
 
         const emailToAdmin: any = {
             to: "leafy.ipssi@gmail.com",
-            from: "leafy.ipssi@gmail.com",
-            subject: 'Supression du compte leafy',
+            subject: 'Un utilisateur a supprimé son compte',
             text: `${user.firstName} ${user.lastName}, votre compte a été supprimer!`,
             html: `<div><h1>Un compte a été supprimer</h1><p>${user.firstName} ${user.lastName} a suprimé son compte.</br> Cela a entrainé la suppresion de ${user.files.length} fichier(s)</p></div>`,
         }
-        // await sgMail.send(emailToAdmin)
+        await mailSender.sendMail(emailToAdmin)
 
-        await Promise.all(user.files.map( async(x: string) => {
+
+        await Promise.all(user.files.map(async (x: string) => {
             const fileRef = doc(db, "files", x);
             const storageRef = ref(storage, `${req.auth.userId}/${x}`);
 
