@@ -129,7 +129,7 @@ app.post("/signup", async (req, res) => {
 
     // await sendMail({ email, firstName, lastName, isNewUser: true });
 
-    const userToken = login(email, password);
+    const userToken = await login(email, password);
     res.status(201).send({ userToken });
   } catch (e) {
     console.error(e);
