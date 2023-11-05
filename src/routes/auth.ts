@@ -69,16 +69,16 @@ const login = async (email: string, password: string) => {
   return userToken;
 };
 
-app.get("/users", auth, async (req: any, res) => {
-  try {
-    const usersCollection = collection(db, "utilisateurs");
-    const users = (await getDocs(usersCollection)).docs;
-    res.status(200).json(users);
-  } catch (e) {
-    console.error(e);
-    res.status(500);
-  }
-});
+app.get("/", auth, async (req: any, res) => {
+    try {
+        const docRef: any = doc(db, 'utilisateurs', req.auth.userId);
+        const docSnap: any = (await getDoc(docRef)).data();
+        res.status(200).json(docSnap)
+    } catch (e) {
+        console.error(e)
+        res.status(500)
+    }
+})
 app.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
