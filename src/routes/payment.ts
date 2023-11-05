@@ -1,6 +1,13 @@
 import {Router} from "express"
-require('dotenv').config();
-const stripe = require('stripe')(process.env.CLIENT_SECRET_STRIPE);
+import Stripe from "stripe";
+import dotenv from 'dotenv';
+
+dotenv.config()
+
+
+const stripe = new Stripe(process.env.CLIENT_SECRET_STRIPE as string)
+// const stripe = require('stripe')(process.env.CLIENT_SECRET_STRIPE);
+
 
 const app = Router();
 

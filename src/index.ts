@@ -2,12 +2,9 @@
 import http from 'http';
 import express, {Express} from 'express';
 import Routes from './routes'
-import sgMail from "@sendgrid/mail";
 import dotenv from 'dotenv'
 
 dotenv.config()
-
-sgMail.setApiKey(process.env.KEY_EMAIL as string)
 
 //Initialisation de la base de donné
 
@@ -17,7 +14,7 @@ router.use(express.urlencoded({ extended: false }));
 router.use(express.json());
 
 router.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', "http://localhost:3000");
+    res.header('Access-Control-Allow-Origin', "*");
     res.header('Access-Control-Allow-Headers', 'origin, X-Requested-With,Content-Type,Accept, Authorization');
     res.header('Access-Control-Allow-Methods', 'GET PATCH DELETE POST INFO');
     next();
