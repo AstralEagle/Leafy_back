@@ -24,7 +24,6 @@ app.get("/", async (req, res) => {
         const userRef: any = collection(db, 'utilisateurs');
         const filesRef: any = collection(db, 'files');
 
-
         const startOfToday = new Date();
         startOfToday.setHours(0, 0, 0, 0);
         const startOfTodayTimestamp = Timestamp.fromDate(startOfToday);
@@ -43,29 +42,31 @@ app.get("/", async (req, res) => {
 
 app.get("/filesbyuser", auth, adminAuth, async (req: any, res) => {
     try {
-        console.log(req.body)
-        if (!req.body.userID)
-            throw new Error("No user selected")
-        const listRef = ref(storage, `${req.body.userID}/`);
+      if (!req.body.userID) throw new Error("No user selected");
+      const listRef = ref(storage, `${req.body.userID}/`);
 
-        const file = await listAll(listRef)
+      const file = await listAll(listRef);
 
-        res.json(await Promise.all(file.items.map(async x => {
-            const metaData = await getMetadata(x)
-            const fileRef: any = doc(db, 'files', x.name);
-            const file: any = (await getDoc(fileRef)).data()
+      res.json(
+        await Promise.all(
+          file.items.map(async (x) => {
+            const metaData = await getMetadata(x);
+            const fileRef: any = doc(db, "files", x.name);
+            const file: any = (await getDoc(fileRef)).data();
             const downloadUrl = await getDownloadURL(x);
             return {
-                id: x.name,
-                name: file.name,
-                size: metaData.size,
-                type: metaData.contentType,
-                created: metaData.timeCreated,
-                downloadUrl,
-            }
-        })));
+              id: x.name,
+              name: file.name,
+              size: metaData.size,
+              type: metaData.contentType,
+              created: metaData.timeCreated,
+              downloadUrl,
+            };
+          })
+        )
+      );
     } catch (e: any) {
-        res.status(500).json({error: e.message})
+      res.status(500).json({ error: e.message });
     }
 })
 app.get("/users", auth, adminAuth, async (req: any, res) => {
