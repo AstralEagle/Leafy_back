@@ -1,11 +1,22 @@
-import {Router} from "express"
-import {collection, doc, getDocs, getDoc, addDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
-import { db }  from "../utils/database"
-import * as bcrypt from 'bcrypt';
-import jwt, {Secret} from 'jsonwebtoken';
+import { Router } from "express";
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  serverTimestamp,
+  updateDoc,
+} from "firebase/firestore";
+import { db, storage } from "../utils/database";
+import * as bcrypt from "bcrypt";
+import jwt, { Secret } from "jsonwebtoken";
 import { auth } from "../middlewares/auth";
 import dotenv from "dotenv";
 import { sendMail } from "./mail";
+import { deleteObject, ref } from "firebase/storage";
+import { mailSender } from "../utils/email";
 
 dotenv.config();
 
@@ -16,6 +27,8 @@ interface UserInterface {
   lastName: string;
   password: string;
   dateCreated: any;
+  files: string[];
+  storage: { max: number; used: number };
 }
 
 const secretKey = process.env.KEY_TOKEN;
@@ -156,37 +169,36 @@ app.delete("/", auth, async (req: any, res) => {
   }
 });
 app.put("/newAdmin", auth, async (req: any, res) => {
-    if(!req.auth.isAdmin){
-        return res.status(500).send("Your are not admin")
+  if (!req.auth.isAdmin) {
+    return res.status(500).send("Your are not admin");
+  }
+  try {
+    if (!req.body.userId) {
+      throw new Error("Missing user");
     }
-    try{
-        if(!req.body.userId){
-            throw new Error("Missing user")
-        }
-        const docRef: any = doc(db, 'utilisateurs', req.body.userId);
-        const dataEdited: any = {
-            isAdmin: true
-        }
-        await updateDoc(docRef, dataEdited );
-        res.status(200).send("Edit admin is succesful")
-    }catch (e) {
-        console.error(e)
-        res.status(500)
-    }
-})
-app.put("/profile", auth, async(req: any, res) => {
-    const {firstName, lastName, email, password} = req.body
-    try{
-        const docRef: any = doc(db, 'utilisateurs', req.auth.userId);
-        const hash = bcrypt.hashSync(password, 10);
-        const dataEdited: any = {firstName, lastName, email, password: hash}
-        await updateDoc(docRef, dataEdited);
-        res.status(200).send("Edit profil success")
-    }catch(e){
-        console.error(e)
-        res.status(500)
-    }
-})
-
+    const docRef: any = doc(db, "utilisateurs", req.body.userId);
+    const dataEdited: any = {
+      isAdmin: true,
+    };
+    await updateDoc(docRef, dataEdited);
+    res.status(200).send("Edit admin is succesful");
+  } catch (e) {
+    console.error(e);
+    res.status(500);
+  }
+});
+app.put("/profile", auth, async (req: any, res) => {
+  const { firstName, lastName, email, password } = req.body;
+  try {
+    const docRef: any = doc(db, "utilisateurs", req.auth.userId);
+    const hash = bcrypt.hashSync(password, 10);
+    const dataEdited: any = { firstName, lastName, email, password: hash };
+    await updateDoc(docRef, dataEdited);
+    res.status(200).send("Edit profil success");
+  } catch (e) {
+    console.error(e);
+    res.status(500);
+  }
+});
 
 export default app;
