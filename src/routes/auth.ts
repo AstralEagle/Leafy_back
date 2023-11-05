@@ -14,7 +14,6 @@ import * as bcrypt from "bcrypt";
 import jwt, { Secret } from "jsonwebtoken";
 import { auth } from "../middlewares/auth";
 import dotenv from "dotenv";
-import { sendMail } from "./mail";
 import { deleteObject, ref } from "firebase/storage";
 import { mailSender } from "../utils/email";
 
@@ -102,6 +101,19 @@ app.post("/signup", async (req, res) => {
       address,
     } = req.body;
 
+    if (
+      !password ||
+      !email ||
+      !firstName ||
+      !lastName ||
+      !address ||
+      !city ||
+      !country ||
+      !zip
+    ) {
+      throw new Error("Missing value");
+    }
+
     const hash = bcrypt.hashSync(password, 10);
 
     const usersCollection = collection(db, "utilisateurs");
@@ -112,7 +124,7 @@ app.post("/signup", async (req, res) => {
       firstName,
       lastName,
       password: hash,
-      storage: 0,
+      storage: { used: 0, max: 21474836480 },
       files: [],
       address: {
         zip,
@@ -140,7 +152,13 @@ app.post("/signup", async (req, res) => {
       },
     });
 
-    // await sendMail({ email, firstName, lastName, isNewUser: true });
+    const data: any = {
+      to: email,
+      subject: "Honee vous souhaite la bienvenue",
+      text: `${firstName} ${lastName}, l'équipe de Honee vous souhaite la bienvenue!`,
+      html: `<div><h1>Bienvenue</h1><p>${firstName} ${lastName}, toute l'équipe de Honee vous souhaite la bienvenue!</p></div>`,
+    };
+    await mailSender.sendMail(data);
 
     const userToken = await login(email, password);
     res.status(201).send({ userToken });
@@ -155,12 +173,29 @@ app.delete("/", auth, async (req: any, res) => {
     const user: any = (await getDoc(userDoc)).data();
     const data: any = {
       to: user.email,
-      from: "leafy.ipssi@gmail.com",
-      subject: "Suppression du compte leafy",
-      text: `${user.firstName} ${user.lastName}, votre compte a été supprimé !`,
-      html: `<div><h1>Oh non</h1><p>${user.firstName} ${user.lastName}, nous sommes tristes que vous décidiez de quitter l'aventure Leafy aussi tôt. Nous espérons que vous reviendrez vite!</p></div>`,
+      subject: "Supression du compte Honee",
+      text: `${user.firstName} ${user.lastName}, votre compte a été supprimé!`,
+      html: `<div><h1>Ho non</h1><p>${user.firstName} ${user.lastName}, nous sommes tristes que vous décidiez de quitter l'aventure Honee aussi tôt. Nous espérons que vous reviendrez vite!</p></div>`,
     };
-    // envoyer un email a l'admin
+    await mailSender.sendMail(data);
+
+    const emailToAdmin: any = {
+      to: "leafy.ipssi@gmail.com",
+      subject: "Un utilisateur a supprimé son compte",
+      text: `${user.firstName} ${user.lastName}, votre compte a été supprimé !`,
+      html: `<div><h1>Un compte a été supprimé</h1><p>${user.firstName} ${user.lastName} a suprimé son compte.</br> Cela a entrainé la suppresion de ${user.files.length} fichier(s)</p></div>`,
+    };
+    await mailSender.sendMail(emailToAdmin);
+
+    await Promise.all(
+      user.files.map(async (x: string) => {
+        const fileRef = doc(db, "files", x);
+        const storageRef = ref(storage, `${req.auth.userId}/${x}`);
+
+        await deleteObject(storageRef);
+        await deleteDoc(fileRef);
+      })
+    );
     await deleteDoc(userDoc);
     res.status(200).send("Success removed");
   } catch (e) {
