@@ -6,7 +6,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-//Initialisation de la base de données
+//Initialisation de la base de donné
 
 const router: Express = express();
 
