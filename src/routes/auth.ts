@@ -16,6 +16,7 @@ import { auth } from "../middlewares/auth";
 import dotenv from "dotenv";
 import { deleteObject, ref } from "firebase/storage";
 import { mailSender } from "../utils/email";
+import { addInvoice } from "./invoices";
 
 dotenv.config();
 
@@ -116,6 +117,13 @@ app.post("/signup", async (req, res) => {
 
     const hash = bcrypt.hashSync(password, 10);
 
+    const addr = {
+      zip,
+      city,
+      country,
+      address,
+    };
+
     const usersCollection = collection(db, "utilisateurs");
     const user = await addDoc(usersCollection, {
       dataCreated: serverTimestamp(),
@@ -126,30 +134,12 @@ app.post("/signup", async (req, res) => {
       password: hash,
       storage: { used: 0, max: 21474836480 },
       files: [],
-      address: {
-        zip,
-        city,
-        country,
-        address,
-      },
+      address: addr,
     });
 
-    const invoicesCollection = collection(db, "invoices");
-    await addDoc(invoicesCollection, {
-      date: serverTimestamp(),
-      TVA: 20, // %
-      taxes: (19.1 * 20) / 100 + 0.9, // €
-      quantity: 20, // GO
-      stripe: 0.9, // € taxes
-      amount: 15.28, // HT €
-      totalAmount: 15.28 + 0.9 + (19.1 * 20) / 100, // € TTC
+    await addInvoice({
+      address: addr,
       userId: user.id,
-      address: {
-        zip,
-        city,
-        country,
-        address,
-      },
     });
 
     const data: any = {
