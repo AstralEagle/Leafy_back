@@ -11,18 +11,17 @@ const stripe = new Stripe(process.env.CLIENT_SECRET_STRIPE as string)
 
 const app = Router();
 
-app.post('/secret', async (req, res) => {
+app.post("/secret", async (req, res) => {
   try {
     const paymentIntent = await stripe.paymentIntents.create({
       amount: 2000, // centimes
-      currency: 'eur',
-      payment_method_types: ['card'],
+      currency: "eur",
+      payment_method_types: ["card"],
     });
 
-    res.status(200).json({client_secret: paymentIntent.client_secret});
-
+    res.status(200).json({ client_secret: paymentIntent.client_secret });
   } catch (error: any) {
-    return res.status(error.statusCode).json({error});
+    return res.status(error.statusCode).json({ error });
   }
 });
 

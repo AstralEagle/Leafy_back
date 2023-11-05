@@ -1,10 +1,10 @@
 /** source/server.ts */
-import http from 'http';
-import express, {Express} from 'express';
-import Routes from './routes'
-import dotenv from 'dotenv'
+import http from "http";
+import express, { Express } from "express";
+import Routes from "./routes";
+import dotenv from "dotenv";
 
-dotenv.config()
+dotenv.config();
 
 //Initialisation de la base de donné
 
@@ -23,13 +23,15 @@ router.use((req, res, next) => {
 router.use(Routes);
 
 router.use((req, res, next) => {
-    const error = new Error('not found');
-    return res.status(404).json({
-        message: error.message
-    });
+  const error = new Error("not found");
+  return res.status(404).json({
+    message: error.message,
+  });
 });
 
 /** Server */
 const httpServer = http.createServer(router);
 const PORT: any = process.env.PORT ?? 3001;
-httpServer.listen(PORT, () => console.log(`The server is running on port ${PORT}`));
+httpServer.listen(PORT, () =>
+  console.log(`The server is running on port ${PORT}`)
+);
