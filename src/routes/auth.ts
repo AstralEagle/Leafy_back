@@ -26,11 +26,11 @@ interface UserInterface {
 const secretKey = process.env.KEY_TOKEN;
 const app = Router();
 
-app.get("/users", auth, async (req: any, res) => {
+app.get("/", auth, async (req: any, res) => {
     try {
-        const usersCollection = collection(db, 'utilisateurs');
-        const users = (await getDocs(usersCollection)).docs;
-        res.status(200).json(users)
+        const docRef: any = doc(db, 'utilisateurs', req.auth.userId);
+        const docSnap: any = (await getDoc(docRef)).data();
+        res.status(200).json(docSnap)
     } catch (e) {
         console.error(e)
         res.status(500)
