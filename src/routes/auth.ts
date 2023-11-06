@@ -216,8 +216,13 @@ app.put("/profile", auth, async (req: any, res) => {
   const { firstName, lastName, email, password } = req.body;
   try {
     const docRef: any = doc(db, "utilisateurs", req.auth.userId);
-    const hash = bcrypt.hashSync(password, 10);
-    const dataEdited: any = { firstName, lastName, email, password: hash };
+    const dataEdited: any = { firstName, lastName, email };
+
+    if (password) {
+      const hash = bcrypt.hashSync(password, 10);
+      dataEdited.password = hash;
+    }
+    
     await updateDoc(docRef, dataEdited);
     res.status(200).send("Edit profil success");
   } catch (e) {
