@@ -1,5 +1,5 @@
 import {Router} from "express"
-import {deleteObject, getDownloadURL, getMetadata, listAll, ref, uploadBytes} from "firebase/storage";
+import {deleteObject, getDownloadURL, getMetadata, listAll, ref, uploadBytes, getBytes} from "firebase/storage";
 import {db, storage} from "../utils/database"
 import {auth} from "../middlewares/auth";
 import multer from "multer";
@@ -116,6 +116,28 @@ app.delete("/", auth, async (req: any, res) => {
         res.status(400).send(e.message)
     }
 });
+
+app.get("/download/:id", auth, async (req: any, res) => {
+    try{
+        const fileRef = ref(storage, `${req.auth.userId}/${req.params.id}`)
+        const buffer = await getBytes(fileRef);
+
+        const docFileRef: any = doc(db, 'files', fileRef.name);
+        const file: any = (await getDoc(docFileRef)).data()
+
+        res.setHeader('Content-Type', 'application/octet-stream');
+        res.setHeader('Content-Disposition', `attachment; filename="${file.name}"`);
+
+        res.end(Buffer.from(buffer));
+
+
+    }
+    catch(e: any)
+    {
+        console.error(e)
+        res.status(500).send(e.message)
+    }
+})
 
 
 export default app;
