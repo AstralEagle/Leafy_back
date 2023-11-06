@@ -8,6 +8,8 @@ import {
 } from "firebase/firestore";
 import { db } from "../utils/database";
 import { Router } from "express";
+import { auth } from "../middlewares/auth";
+
 const app = Router();
 
 interface AddressType {
@@ -37,10 +39,11 @@ export const addInvoice = async ({ address, userId }: InvoiceType) => {
   });
 };
 
-app.get("/", async (req, res) => {
+app.get("/", auth, async (req: any, res) => {
   try {
     const invoicesRef = collection(db, "invoices");
-    const userId = req.query.userId;
+
+    const userId = req.auth.userId;
 
     const q = query(invoicesRef, where("userId", "==", userId));
     const invoices = (await getDocs(q)).docs.map((doc) => ({
