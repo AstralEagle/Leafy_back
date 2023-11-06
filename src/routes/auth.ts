@@ -73,7 +73,7 @@ app.get("/", auth, async (req: any, res) => {
     try {
         const docRef: any = doc(db, 'utilisateurs', req.auth.userId);
         const docSnap: any = (await getDoc(docRef)).data();
-        res.status(200).json({...docSnap, dateCreated: docSnap.dateCreated.toDate()})
+        res.status(200).json({...docSnap})
     } catch (e) {
         console.error(e)
         res.status(500)
