@@ -40,10 +40,10 @@ app.get("/", async (req, res) => {
     }
 });
 
-app.get("/filesbyuser", auth, adminAuth, async (req: any, res) => {
+app.get("/filesbyuser/:id", auth, adminAuth, async (req: any, res) => {
     try {
-      if (!req.body.userID) throw new Error("No user selected");
-      const listRef = ref(storage, `${req.body.userID}/`);
+      if (!req.params.id) throw new Error("No user selected");
+      const listRef = ref(storage, `${req.params.id}/`);
 
       const file = await listAll(listRef);
 
